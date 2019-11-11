@@ -16,10 +16,10 @@ This repository contains the following sections:
 
 1. **Links to other materials**: I have curated the following online resources:
 
-  - **LEAF 2018 Course Materials Repository**: materials for Statistics instructors to use to integrate computation into their courses, (https://awstringer1.github.io/leaf2018/)[https://awstringer1.github.io/leaf2018/]
+  - **LEAF 2018 Course Materials Repository**: materials for Statistics instructors to use to integrate computation into their courses, [https://awstringer1.github.io/leaf2018/](https://awstringer1.github.io/leaf2018)
 
-  - **STA238 Supplementary Materials**: a bookdown book where I implement most of the analyses and simulations from the course textbook for STA238, a course I co-developed at the University of Toronto. I also illustrate course concepts using large, messy, open datasets (https://awstringer1.github.io/sta238-book/)[https://awstringer1.github.io/sta238-book/].
+  - **STA238 Supplementary Materials**: a bookdown book where I implement most of the analyses and simulations from the course textbook for STA238, a course I co-developed at the University of Toronto. I also illustrate course concepts using large, messy, open datasets [https://awstringer1.github.io/sta238-book/](https://awstringer1.github.io/sta238-book/).
 
-  - **Introductory R Workshop**: workshop materials I have created for our first-year students, to support an initiative from the Statistical Sciences student Union at the University of Toronto (https://awstringer1.github.io/ssu-r-workshop/)[https://awstringer1.github.io/ssu-r-workshop/]. 
+  - **Introductory R Workshop**: workshop materials I have created for our first-year students, to support an initiative from the Statistical Sciences student Union at the University of Toronto [https://awstringer1.github.io/ssu-r-workshop/](https://awstringer1.github.io/ssu-r-workshop/). 
 
 The stuff in this repository is protected under the GNU GPL 3.0 license. You can't pass it off as your own and you can't use it without passing this license forward to your users. 
