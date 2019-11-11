@@ -1,0 +1,115 @@
+---
+title: "Warpbreaks Report"
+author: "STA303 In Class"
+date: '2018-07-11'
+output: pdf_document
+---
+
+```{r setup, include=FALSE,warning = FALSE,message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load packages
+library(tidyverse)
+library(faraway)
+
+# Load data
+data(warpbreaks)
+warpbreaks_tbl <- dplyr::as_data_frame(warpbreaks)
+
+```
+
+Welcome to the Warpbreaks data report! Anything we type here shows up as text.
+
+We can add a title using a hashtag (or "pound sign" if you're over 35)
+
+# View the Data
+
+```{r view-data-1}
+glimpse(warpbreaks_tbl)
+
+# Check the observation counts in each level of the factors
+warpbreaks_tbl %>%
+  group_by(wool,tension) %>%
+  summarize(cnt = n())
+```
+
+If you want to run code without showing the code, use `echo = FALSE`:
+
+```{r view-data-2,echo = FALSE}
+warpbreaks_boxplot_1 <- warpbreaks_tbl %>%
+  ggplot(aes(x = wool,y = breaks)) +
+  theme_classic() +
+  geom_boxplot() +
+  labs(title = "Boxplot of breaks by wool type",
+       x = "Wool Type",
+       y = "Breaks")
+
+warpbreaks_boxplot_2 <- warpbreaks_tbl %>%
+  ggplot(aes(x = tension,y = breaks)) +
+  theme_classic() +
+  geom_boxplot() +
+  labs(title = "Boxplot of breaks by level of tension",
+       x = "Tension Level",
+       y = "Breaks")
+
+cowplot::plot_grid(warpbreaks_boxplot_1,warpbreaks_boxplot_2,nrow=1)
+
+```
+
+Check out the interaction plot. We'll use a subtitle to identify this section:
+
+## Interaction plots
+
+Control the figure size with `fig.height` and `fig.width`:
+```{r interaction-plot-1,fig.height=2,fig.width=2}
+
+warpbreaks_interactionplot_1 <- warpbreaks_tbl %>%
+  group_by(wool,tension) %>%
+  summarize(group_mean = mean(breaks)) %>%
+  ggplot(aes(x = wool,y = group_mean,group = tension)) +
+  theme_classic() +
+  facet_grid(~tension) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Interaction Plot, wool x tension",
+       x = "Wool",
+       y = "Mean # of breaks")
+
+warpbreaks_interactionplot_2 <- warpbreaks_tbl %>%
+  group_by(wool,tension) %>%
+  summarize(group_mean = mean(breaks)) %>%
+  ggplot(aes(x = tension,y = group_mean,group = wool)) +
+  theme_classic() +
+  facet_grid(~wool) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Interaction Plot, tension x wool",
+       x = "Tension",
+       y = "Mean # of breaks")
+
+cowplot::plot_grid(warpbreaks_interactionplot_1,warpbreaks_interactionplot_2)
+
+```
+
+Objects you create in previous chunks are usable in future chunks:
+
+```{r interaction-plot-2,fig.height=5,fig.width=5}
+cowplot::plot_grid(warpbreaks_interactionplot_1,warpbreaks_interactionplot_2)
+```
+
+### Assess normality assumption
+
+```{r normality-1}
+warpbreaks_tbl %>%
+  mutate_at("breaks",funs( (. - mean(.)) / sd(.))) %>%
+  arrange(breaks) %>%
+  mutate(q = qnorm(1:n() / (n() + 1))) %>%
+  ggplot(aes(x = q,y = breaks)) +
+  theme_classic() +
+  geom_point() +
+  geom_abline(slope = 1,intercept = 0) +
+  labs(title = "Normal QQ-plot",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles")
+
+```

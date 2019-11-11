@@ -1,0 +1,240 @@
+---
+title: "STA303 Lecture 1 Example"
+author: "Alex Stringer"
+date: "6/26/2019"
+output: 
+  pdf_document:
+    keep_tex: true
+---
+
+```{r setup, include=FALSE}
+# Load packages and set options
+library(tidyverse)
+library(Matrix)
+library(trustOptim)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The data is the `mtcars` data from the `tidyverse` package (or one of the sub-packages). First let's read it in and take a look:
+
+```{r read-in-data-1}
+data(mtcars)
+mtcars <- as_tibble(mtcars)
+
+glimpse(mtcars)
+
+```
+
+We want to quantify an association between `mpg` (miles per gallon, i.e. fuel economy) and some basic info about the car. Let's make some plots:
+
+```{r plot-1}
+# Plot the relationship between continuous response
+# mpg, and categorical cyl
+mtcars %>%
+  ggplot(aes(x = as.factor(cyl),y = mpg)) +
+  theme_light() + # Change the plot theme to look not bad
+  geom_boxplot() +
+  labs(title = "Cars with more cylinders get worse fuel economy",
+       x = "Cylinders",
+       y = "Fuel Economy (mpg)")
+
+# EXERCISE: make these two plots look nice too.
+
+# Continuous horsepower (hp) vs continuous mpg
+mtcars %>%
+  ggplot(aes(x = hp,y = mpg)) +
+  geom_point()
+
+# Engine displacement
+mtcars %>%
+  ggplot(aes(x = disp,y = mpg)) +
+  geom_point()
+
+```
+
+It looks like there is a simple polynomial relationship between `hp` and `disp` and `mpg`. For `cyl`, even though it's stored as numbers, there are only 3 values. Assuming a linear relationship between them and `mpg` is a bit silly. Treat it as a categorical variable.
+
+Okay, fit a linear regression using `lm`. Scale and centre the data first.
+
+```{r lm-1}
+# Scale and centre the data. Why? Want all variables to be on same scale,
+# so that regression coefficients all have the same interpretation.
+# Centre the data by subtracting each variable's mean.
+# So the new data is number of standard deviations
+# away from the mean.
+mtcars_scaled <- mtcars %>%
+  mutate_at(c("mpg","hp","disp"),~(.x - mean(.x))/sd(.x))
+
+
+# lm: linear model
+# formula: response ~ covariates
+# Intercept is included automatically
+lmod <- lm(mpg ~ poly(hp,2,raw = TRUE) + 
+             poly(disp,2,raw = TRUE) + 
+             as.factor(cyl),
+           data = mtcars_scaled)
+
+# To see the design matrix X...
+XX <- model.matrix(mpg ~ poly(hp,2,raw = TRUE) + 
+             poly(disp,2,raw = TRUE) + 
+             as.factor(cyl),
+           data = mtcars_scaled)
+# Contains variables and their own squares
+# Still linear regression because mean is linear
+# function of beta. VERY important understanding.
+
+# Print a clean summary
+summary(lmod)
+
+# Predictions
+# Goal: be able to recreate this function
+# by understanding what it does.
+pred_func <- function(x,cyl) {
+  beta <- coef(lmod)
+  val <- beta[1] +
+    x * beta[4] + 
+    x^2 * beta[5]
+  if (cyl == 6) val <- val + beta[6]
+  if (cyl == 8) val <- val + beta[7]
+  unname(val)
+} 
+
+# For hp = 0 (its mean), plot the predicted means
+# for mpg as a function of disp,
+# for each value of cyl
+mtcars_scaled %>%
+  ggplot(aes(x = disp)) +
+  theme_light() + # Add a theme! Make it nice! 
+  geom_point(aes(y = mpg)) +
+  stat_function(fun = pred_func,args = list(cyl = 4),colour = "purple") +
+  stat_function(fun = pred_func,args = list(cyl = 6),colour = "orange") +
+  stat_function(fun = pred_func,args = list(cyl = 8),colour = "red") +
+  labs(title = "Predicted mean of mpg as function of disp",
+       subtitle = "...for each value of cyl",
+       x = "Displacement",
+       y = "Miles per Gallon")
+
+# EXERCISE:
+# 1) Come up with a better title, like we did above
+# 2) Add a legend.
+
+# What are the model assumptions?
+# 1) Errors are normally distributed
+# 2) ...with CONSTANT variance (residual plot)
+# 3) Data is independent (conclude from knowledge of sampling)
+# 4) Mean is a LINEAR function of covariates (look at plot)
+
+# Residual plots. Residuals are realizations
+# of errors (epsilon)
+# EXERCISE:
+# 1) Clean this plot up, with themes and titles
+# 2) Recreate it manually. I.e., recreate the output of
+# residuals() and predict()
+tibble(
+  residuals = residuals(lmod),
+  fittedvalues = predict(lmod)
+) %>%
+  ggplot(aes(x = fittedvalues,y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+
+# Normally distributed... I forgot :(
+qqnorm(residuals(lmod))
+qqline(residuals(lmod))
+# EXERCISE for total keeners:
+# 1) Re-do this plot in ggplot
+# ...but I have examples in later labs.
+
+
+
+```
+
+
+Cool, we can do regression! Well, the guy who wrote R can do regression. You need to be able to implement this from scratch. Let's give it a try:
+
+```{r manual-1}
+# Create the X matrix
+X <- sparse.model.matrix(mpg ~ poly(hp,2,raw = TRUE) + poly(disp,2,raw = TRUE) + as.factor(cyl),data = mtcars_scaled)
+# Response
+y <- mtcars_scaled$mpg
+
+# The "math" solution
+solve(t(X)%*%X) %*% t(X) %*% cbind(y)
+
+# ...but you should NEVER invert a matrix computationally. Always solve the associated system.
+solve(t(X) %*% X,t(X) %*% cbind(y))
+
+# Now get the result by brute-force optimization
+
+# Log likelihood
+loglik <- function(params) {
+  # params: vector of length 8 containing beta0 -- beta6, and log(sigma^2)
+  # as.numeric(-(1/2*exp(params[8])) * crossprod(y - X%*%params[1:7]))
+  
+  mu <- as.numeric(X %*% params[1:7])
+  sum(dnorm(x = y,mean = mu,sd = exp(.5 * params[8]),log = TRUE))
+}
+
+# Optimize it directly
+opt <- optim(par = rep(0,ncol(X)+1),fn = loglik,control = list(fnscale = -1),method = "CG")
+opt$par[1:7]
+unname(coef(lmod))
+
+# What?
+goodsolution <- c(coef(lmod),log(summary(lmod)$sigma^2))
+loglik(goodsolution)
+loglik(opt$par)
+
+# Okay... gradient and hessian.
+
+grad_loglik <- function(params) {
+  betapart <- as.numeric((1/2*exp(params[8])) * t(X) %*% (y - X%*%params[1:7]))
+  sigmapart <- -(nrow(X)-7)/2 + (1/2) * exp(-params[8]) * crossprod(y - X%*%params[1:7])
+  betapart <- as.numeric(betapart)
+  sigmapart <- as.numeric(sigmapart)
+  c(betapart,sigmapart)
+}
+grad_loglik(goodsolution) # Should be zero, right?
+grad_loglik(opt$par) 
+
+# Trust region optimization
+opt2 <- trust.optim(
+  x = rep(0,8),
+  fn = loglik,
+  gr = grad_loglik,
+  method = "SR1",
+  control = list(function.scale.factor = -1,
+                 start.trust.radius = 1000,
+                 report.level = 4,
+                 cg.tol = 1e-16,
+                 prec = 1e-16)
+)
+opt2$solution
+goodsolution
+loglik(opt2$solution)
+loglik(goodsolution)
+grad_loglik(opt2$solution)
+grad_loglik(goodsolution)
+
+
+# Try nlm. No hessian.
+
+minusloglik <- function(p) -loglik(p)
+opt3 <- nlm(f = minusloglik,p = rep(0,8))
+opt3$estimate
+goodsolution
+loglik(opt3$estimate)
+loglik(goodsolution)
+grad_loglik(opt3$estimate)
+grad_loglik(goodsolution)
+
+# Moral: optimization is finicky! If you have a closed-form answer, or specific information about
+# your problem, USE IT.
+
+```
+
+
+
+
+
+

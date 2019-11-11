@@ -1,0 +1,71 @@
+---
+title: "Analyze Iris Dataset"
+author: "STA303 In Class"
+date: '2018-07-04'
+output: pdf_document
+---
+
+```{r load-packages}
+# install.package("tidyverse")
+suppressWarnings({
+  suppressMessages({
+    library(tidyverse)
+  })
+})
+
+```
+
+# Analyze the Iris Dataset
+
+```{r iris-1}
+data(iris)
+# View(iris)
+glimpse(iris)
+```
+
+## The Pipe!
+
+Use the "pipe" to work with chains of functions:
+
+```{r the-pipe-1}
+# Generate 100 standard normal values,
+# sort them, take the unique ones,
+# and then take the top 10
+
+# How not to do it:
+set.seed(6504)
+x1 <- rnorm(100)
+x2 <- sort(x1,decreasing=TRUE)
+x3 <- unique(x2)
+x4 <- x3[1:10]
+x4
+
+# How to do it:
+set.seed(6504)
+x5 <- rnorm(100) %>%
+  sort(.,decreasing = TRUE) %>%
+  unique()
+x5[1:10]
+
+# What species are present in the dataset?
+iris %>%
+  group_by(Species) %>%
+  summarize(numtimes = n())
+```
+
+## Plot Variables
+
+Here we plot pairs of variables against each other.
+
+```{r iris-plot-1}
+# Plot Sepal.Width vs Sepal.Length in ggplot()
+iris %>%
+  ggplot(aes(x = Sepal.Width,y = Sepal.Length,fill = Species)) +
+  theme_classic() +
+  geom_point(pch = 21,colour = "black") +
+  labs(title = "Relationship between sepal characteristics",
+       subtitle = "Iris Dataset",
+       x = "Sepal Width",
+       y = "Sepal Length",
+       fill = "Flower Species")
+```

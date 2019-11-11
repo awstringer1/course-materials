@@ -1,0 +1,63 @@
+---
+title: "Challenger Dataset Analysis"
+author: "STA303 In Class"
+date: '2018-07-16'
+output: pdf_document
+---
+
+```{r setup, include=FALSE,warnings = FALSE,message=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(faraway)
+```
+
+# Load the Data
+```{r load-1}
+data(orings)
+orings_tbl <- as_data_frame(orings) %>%
+  mutate(prop_damaged = damage / 6) # Maximum likelihood estimate
+
+glimpse(orings_tbl)
+
+```
+
+# Plot the data
+
+```{r plot-1}
+orings_tbl %>%
+  ggplot(aes(x = temp,y = prop_damaged)) +
+  theme_classic() +
+  geom_point(pch=21) +
+  geom_smooth(method = "lm",se = FALSE,colour="blue") +
+  labs(title = "Orings Data",
+       subtitle = "Probability of o-ring failure for 23 space shuttle missions as a function of temperature on launch day",
+       x = "Temperature",
+       y = "Probability of Damage") +
+  scale_y_continuous(labels = scales::percent_format())
+
+```
+
+# Binomial GLM
+
+```{r glm-1,fig.height=3,fig.width=3}
+glm1 <- glm(cbind(damage,6-damage) ~ temp,data=orings_tbl,family=binomial)
+summary(glm1)
+
+orings_tbl %>%
+  ggplot(aes(x = temp,y = prop_damaged)) +
+  theme_classic() +
+  geom_point(pch=21) +
+  geom_line(data = data_frame(
+    temp = seq(25,90,by=0.1),
+    prop_damaged = ilogit(coef(glm1)[1] + coef(glm1)[2]*temp)
+    ),colour="blue",size = 1) +
+  labs(title = "Orings Data - Fitted Binomial Regression Model",
+       subtitle = "Probability of o-ring failure for 23 space shuttle missions as a function of temperature on launch day",
+       x = "Temperature",
+       y = "Probability of Damage") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_x_continuous(breaks = seq(30,80,by=10)) +
+  theme(plot.title = element_text(size = 10))
+
+```
